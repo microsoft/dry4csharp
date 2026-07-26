@@ -157,6 +157,18 @@ Java drops children whose simple name is `SimpleName`, `*LiteralExpr`, `Name`, `
 | `switch:TYPE` | `SwitchEntry.getType()` | `SwitchSectionSyntax` (colon/statement) vs `SwitchExpressionArmSyntax` (arrow/expression) | `"switch:section"` / `"switch:arm"`. *(Redundant with the distinct tags, but emitted for scheme parity.)* |
 | `lambda:parenthesized` | `LambdaExpr.isEnclosingParameters()` | `ParenthesizedLambdaExpressionSyntax` | `"lambda:parenthesized"` (none for `SimpleLambdaExpressionSyntax`). |
 
+**Marker scope (S2 review — decided by Mr. Das).** `modifier:` markers are emitted only for **type
+members** (`MemberDeclarationSyntax.Modifiers`) and **local declarations**
+(`LocalDeclarationStatementSyntax`) — faithful to `dry4java`'s two marker sources. Modifiers on nodes
+Java has no analog for — **local functions** & **lambdas** (`static`/`async`), **accessors**
+(`private set`), **parameters** (`ref`/`out`/`in`/`params`) — are deliberately **not** marked.
+Rationale: this is a DRY *duplicate detector*; leaving those modifiers unmarked means two
+structurally-identical bodies that differ only by such a modifier still fingerprint alike and are
+correctly flagged as the duplication they are — marking them would only lower similarity and risk
+*hiding* real duplicates (the same reasoning that normalizes away names and literals). Also: C# adds a
+local-declaration modifier **once**; `dry4java`'s `VariableDeclarationExpr` double-adds it (an
+unintentional Java artifact) — not reproduced, accepted under structural-not-literal.
+
 ### Fingerprint / nodeCount parity
 `NormalizedNode` is language-agnostic → ported 1:1. `nodeCount` = recursive node total. Fingerprints
 = the set of every subtree's fingerprint; leaf → `tag`, internal → `"(" + tag + " " + childFps… + ")"`.
