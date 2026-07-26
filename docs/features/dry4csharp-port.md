@@ -55,15 +55,16 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
 | S2 | **Analyzer core.** `Location`, `Candidate`, `NormalizedNode`, `CSharpNormalizer`, `Options`, `CSharpDuplicateFinder` (scan → collect → normalize → fingerprint → similarity → sort). Unit tests for normalizer/fingerprints/similarity/options. Builds + tests green. | S1 |
 | S3 | **CLI + output.** `Dry4CSharp` entry (`Main`, format dispatch, `Environment.Exit(2)`, `USAGE`/`--help`), `PrintText`, `FormatCandidate`, `ToEdn`. Output/exit-code unit tests. Builds + tests green. | S2 |
 | S4 | **Test-fidelity port + parity audit.** Faithful 1:1 counterparts of all 9 JUnit tests under the same names; confirm every `dry4java` test maps; align README/docs. Builds + tests green. | S3 |
+| S5 | **Independent evaluation (external).** After the port is complete, a fresh agent on model **gpt-5.6-sol** — briefed with **only** Mr. Das's original Requirements (no design docs, decisions, rationale, or hints) — evaluates the delivered `dry4csharp` and reports whether it meets those requirements. Findings triaged back into the loop. | S4 |
 
 ## Tasks (Tx)
 
 | #  | Slice | Task | Status  | Commit |
 |----|-------|------|---------|--------|
-| T1 | S1 | Create `dry4csharp.sln`. | Pending | - |
-| T2 | S1 | `src/Dry4CSharp/Dry4CSharp.csproj` (`OutputType=Exe`, `net8.0`, import `..\..\Dry4CSharp.Common.targets`) + minimal `public static class` with `Main`. | Pending | - |
-| T3 | S1 | `tests/Dry4CSharp.Tests/Dry4CSharp.Tests.csproj` (import `..\..\Dry4CSharp.Tests.Common.targets`, `ProjectReference` to src) + one smoke `[Fact]`. | Pending | - |
-| T4 | S1 | Verify `dotnet restore` (lock files) + `dotnet build` + `dotnet test` green. | Pending | - |
+| T1 | S1 | Create `dry4csharp.sln`. | Done | a1c3495 |
+| T2 | S1 | `src/Dry4CSharp/Dry4CSharp.csproj` (`OutputType=Exe`, `net8.0`, import `..\..\Dry4CSharp.Common.targets`) + minimal `public static class` with `Main`. | Done | a1c3495 |
+| T3 | S1 | `tests/Dry4CSharp.Tests/Dry4CSharp.Tests.csproj` (import `..\..\Dry4CSharp.Tests.Common.targets`, `ProjectReference` to src) + one smoke `[Fact]`. | Done | a1c3495 |
+| T4 | S1 | Verify `dotnet restore` (lock files) + `dotnet build` + `dotnet test` green. | Done | a1c3495 |
 | T5 | S2 | `Location` record (`file`, `startLine`, `endLine`). | Pending | - |
 | T6 | S2 | `Candidate` record (`score`, `left`, `right`, `leftNodes`, `rightNodes`). | Pending | - |
 | T7 | S2 | `NormalizedNode` (`NodeCount`, `Fingerprints` via `SortedSet<string>` Ordinal, `ToFingerprint`) + unit tests. | Pending | - |
@@ -79,6 +80,8 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
 | T17 | S4 | Port `reportsStructuralDuplicateCandidatesWithFileAndLineRanges`, `matchesRecordsWithDifferentNamesAndLiteralValues`, `filtersCandidatesShorterThanTheMinimumLineCount` with C# sample sources (assert the C#-sample line ranges — see A2). | Pending | - |
 | T18 | S4 | Port `matchesEnumsAndConstantsStructurally` via **R2 option (a)** — a real C# `enum` with several members + relaxed thresholds (asserts enum/`EnumMember` roots match; verifies same intent). | Pending | - |
 | T19 | S4 | Parity audit: confirm all 9 counterparts present & assertions mapped; align README/docs. | Pending | - |
+| T20 | S5 | **Independent evaluation:** launch a fresh, context-isolated agent on **gpt-5.6-sol** whose entire brief is the verbatim **Requirements** section — nothing else (no `decisions.md`, no feature-file design, no team rationale, no hints). It inspects the delivered `dry4csharp` and produces a written verdict (meets / gaps / risks) against those requirements. | Pending | - |
+| T21 | S5 | **Triage:** JARVIS + Mr. Das review the evaluation; accepted gaps become new tasks/slices, the rest recorded as accepted or deferred. | Pending | - |
 
 ## Risks (Rx)
 
@@ -130,6 +133,9 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
 - **A6 — Scan** targets `.cs`, default `["src"]`, recursive, **Ordinal**-sorted; non-existent/non-`.cs`
   paths are silently ignored (Java parity).
 - **A7 — `LanguageVersion.Latest`** (analog of `JAVA_21`).
+- **A8 — S5 evaluator is blind to our design.** The gpt-5.6-sol evaluator receives ONLY the verbatim
+  original Requirements; it is deliberately NOT given `docs/decisions.md`, the feature-file design
+  (Options/Slices/Tasks/etc.), Anders' rationale, or any hints — so its assessment is independent.
 
 ## Deferrals (Dx)
 
@@ -148,3 +154,7 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
   open blockers.
 - `.github/copilot-instructions.md` slimmed to durable cross-cutting rules + a pointer to
   `docs/decisions.md` (the stale CRAP/coverage wording removed).
+- **OPEN (resolve before S5 runs):** may the S5 evaluator also read the READ-ONLY `../dry4java` (the
+  fidelity reference named in the Requirements), or is it strictly requirements-only? Recommend
+  allowing read-only `../dry4java` access — the Requirements themselves designate it as the fidelity
+  yardstick — while still withholding all of *our* design/rationale.
