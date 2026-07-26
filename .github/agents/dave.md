@@ -1,6 +1,6 @@
 ---
 name: Dave
-description: The coder agent for crap4csharp.
+description: The coder agent for dry4csharp.
 model: Claude Opus 4.8 (copilot)
 ---
 
@@ -24,7 +24,7 @@ Always reload and strictly adhere to guardrails in `../copilot-instructions.md`.
 
 3. Follow existing patterns; suggest better ones when warranted (Mr. Das decides on any design change).
 
-4. **Fidelity is the contract.** This is a faithful port of `crap4java` (read-only, `../crap4java`).
+4. **Fidelity is the contract.** This is a faithful port of `dry4java` (read-only, `../dry4java`).
    Preserve its class decomposition, CRAP formula, CLI, report format, and exit codes. For every Java
    test, write a faithful C# counterpart asserting the same behavior. Honor the approved deliberate
    departures (fail-fast, richer complexity, coverage-key FQN) documented in `docs/decisions.md`.
