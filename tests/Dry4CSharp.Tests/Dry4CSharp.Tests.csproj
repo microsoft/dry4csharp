@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Dry4CSharp\Dry4CSharp.csproj" />
+  </ItemGroup>
+
+  <Import Project="..\..\Dry4CSharp.Tests.Common.targets" />
+
+</Project>
