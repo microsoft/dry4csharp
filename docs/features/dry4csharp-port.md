@@ -76,11 +76,11 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
 | T12 | S3 | `PrintText` (explicit `"\n"`, empty message). | Done | 7d05ab9 |
 | T13 | S3 | `FormatCandidate` (`F2` InvariantCulture, `"\n"`). | Done | 7d05ab9 |
 | T14 | S3 | `ToEdn` (empty + structured; `\`/`"` escape order; raw `double` InvariantCulture) + unit tests. | Done | 7d05ab9 |
-| T15 | S4 | Port JUnit `parsesCommandLineOptionsAndPaths`, `defaultsToSrcWhenNoPathsAreProvided`. | Pending | - |
-| T16 | S4 | Port `formatsTextOutputWithLineRanges`, `printsClearMessageWhenNoTextCandidatesExist`, `printsEdn` (use `.cs` paths). | Pending | - |
-| T17 | S4 | Port `reportsStructuralDuplicateCandidatesWithFileAndLineRanges`, `matchesRecordsWithDifferentNamesAndLiteralValues`, `filtersCandidatesShorterThanTheMinimumLineCount` with C# sample sources (assert the C#-sample line ranges — see A2). | Pending | - |
-| T18 | S4 | Port `matchesEnumsAndConstantsStructurally` via **R2 option (a)** — a real C# `enum` with several members + relaxed thresholds (asserts enum/`EnumMember` roots match; verifies same intent). | Pending | - |
-| T19 | S4 | Parity audit: confirm all 9 counterparts present & assertions mapped; align README/docs. | Pending | - |
+| T15 | S4 | Port JUnit `parsesCommandLineOptionsAndPaths`, `defaultsToSrcWhenNoPathsAreProvided`. | Done | 651ff5b |
+| T16 | S4 | Port `formatsTextOutputWithLineRanges`, `printsClearMessageWhenNoTextCandidatesExist`, `printsEdn` (use `.cs` paths). | Done | 651ff5b |
+| T17 | S4 | Port `reportsStructuralDuplicateCandidatesWithFileAndLineRanges`, `matchesRecordsWithDifferentNamesAndLiteralValues`, `filtersCandidatesShorterThanTheMinimumLineCount` with C# sample sources (assert the C#-sample line ranges — see A2). | Done | 651ff5b |
+| T18 | S4 | Port `matchesEnumsAndConstantsStructurally` via **R2 option (a)** — a real C# `enum` with several members + relaxed thresholds (asserts enum/`EnumMember` roots match; verifies same intent). | Done | 651ff5b |
+| T19 | S4 | Parity audit: confirm all 9 counterparts present & assertions mapped; align README/docs. | Done | 651ff5b |
 | T20 | S5 | **Independent evaluation:** launch a fresh, context-isolated agent on **gpt-5.6-sol** given exactly two inputs — (1) the verbatim `## Requirements` section of `docs/features/dry4csharp-port.md` and (2) the READ-ONLY `../dry4java` source — and **nothing of ours** (no `decisions.md`, no other feature-file sections, no team rationale, no hints). It evaluates the delivered `dry4csharp` for a full fidelity + requirements assessment and produces a written verdict (meets / gaps / risks). | Pending | - |
 | T21 | S5 | **Triage:** JARVIS + Mr. Das review the evaluation; accepted gaps become new tasks/slices, the rest recorded as accepted or deferred. | Pending | - |
 | T22 | S6 | Build/publish `dry4csharp` (Release) and run it against `../crap4csharp`, `../mutate4csharp`, and `../dry4csharp` (self); capture text (and EDN) output per codebase. | Pending | - |
@@ -173,3 +173,10 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
   self-referential (it re-applies the implementation's own sort keys to build `expected`); and no test
   yet pins an end-to-end fingerprint *string* through `CSharpNormalizer`. Consider a small exact-string
   fingerprint assertion during S4.
+- **S4 review (Anders) — accepted; non-blocking polish:** (a) the parity file intentionally duplicates
+  the S3 `OutputTests` (#7/#8/#9) — the parity suite is the standalone fidelity contract, the units are
+  fine-grained; do **not** "dedupe" it. (b) enum test #3 uses `threshold 0.50`, but only `min-lines→1` /
+  `min-nodes→2` are load-bearing (both enum & `EnumMember` roots score 1.0) — `0.80` (Java's value)
+  would be strictly more faithful; **optional** Dave tweak. (c) #3 relies on an `EnumMember` normalizing
+  to exactly 2 nodes — noted so a future normalizer change can't silently drop members. (d) the S2
+  end-to-end fingerprint-string nit is now **closed** by `ProducesExactFingerprint…`.
