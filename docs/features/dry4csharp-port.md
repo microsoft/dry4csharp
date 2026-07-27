@@ -1,6 +1,6 @@
 # Feature: dry4csharp — faithful C# port of dry4java
 **Branch:** vibe/dry4csharp-port
-**Status:** Planning
+**Status:** In Progress
 
 ## Requirements
 
@@ -56,7 +56,8 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
 | S3 | **CLI + output.** `Dry4CSharp` entry (`Main`, format dispatch, `Environment.Exit(2)`, `USAGE`/`--help`), `PrintText`, `FormatCandidate`, `ToEdn`. Output/exit-code unit tests. Builds + tests green. | S2 |
 | S4 | **Test-fidelity port + parity audit.** Faithful 1:1 counterparts of all 9 JUnit tests under the same names; confirm every `dry4java` test maps; align README/docs. Builds + tests green. | S3 |
 | S5 | **Independent evaluation (external).** After the port is complete, a fresh agent on model **gpt-5.6-sol** — briefed with **only** Mr. Das's original Requirements (no design docs, decisions, rationale, or hints) — evaluates the delivered `dry4csharp` and reports whether it meets those requirements. Findings triaged back into the loop. | S4 |
-| S6 | **Real-world application — "rubber meets the road" (FINAL slice).** After everything else is complete and pushed, run the built `dry4csharp` against three real C# codebases — `../crap4csharp`, `../mutate4csharp`, and `../dry4csharp` (self) — capture the duplicate-candidate reports, and triage the findings (duplicates found **and** any tool robustness issues real input surfaces). | S5 |
+| S5.5 | **Fidelity hardening (from the S5 independent eval).** Address the accepted eval findings: error exit code = 1, HALF_UP text-score rounding, preserve generic type-args inside qualified names, add operator/conversion/destructor/accessor candidate roots, tighten the enum parity test to Java's 0.80. | S5 |
+| S6 | **Real-world application — "rubber meets the road" (FINAL slice).** After everything else is complete and pushed, run the built `dry4csharp` against three real C# codebases — `../crap4csharp`, `../mutate4csharp`, and `../dry4csharp` (self) — capture the duplicate-candidate reports, and triage the findings (duplicates found **and** any tool robustness issues real input surfaces). | S5.5 |
 
 ## Tasks (Tx)
 
@@ -81,8 +82,13 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
 | T17 | S4 | Port `reportsStructuralDuplicateCandidatesWithFileAndLineRanges`, `matchesRecordsWithDifferentNamesAndLiteralValues`, `filtersCandidatesShorterThanTheMinimumLineCount` with C# sample sources (assert the C#-sample line ranges — see A2). | Done | 651ff5b |
 | T18 | S4 | Port `matchesEnumsAndConstantsStructurally` via **R2 option (a)** — a real C# `enum` with several members + relaxed thresholds (asserts enum/`EnumMember` roots match; verifies same intent). | Done | 651ff5b |
 | T19 | S4 | Parity audit: confirm all 9 counterparts present & assertions mapped; align README/docs. | Done | 651ff5b |
-| T20 | S5 | **Independent evaluation:** launch a fresh, context-isolated agent on **gpt-5.6-sol** given exactly two inputs — (1) the verbatim `## Requirements` section of `docs/features/dry4csharp-port.md` and (2) the READ-ONLY `../dry4java` source — and **nothing of ours** (no `decisions.md`, no other feature-file sections, no team rationale, no hints). It evaluates the delivered `dry4csharp` for a full fidelity + requirements assessment and produces a written verdict (meets / gaps / risks). | Pending | - |
-| T21 | S5 | **Triage:** JARVIS + Mr. Das review the evaluation; accepted gaps become new tasks/slices, the rest recorded as accepted or deferred. | Pending | - |
+| T20 | S5 | **Independent evaluation:** launch a fresh, context-isolated agent on **gpt-5.6-sol** given exactly two inputs — (1) the verbatim `## Requirements` section of `docs/features/dry4csharp-port.md` and (2) the READ-ONLY `../dry4java` source — and **nothing of ours** (no `decisions.md`, no other feature-file sections, no team rationale, no hints). It evaluates the delivered `dry4csharp` for a full fidelity + requirements assessment and produces a written verdict (meets / gaps / risks). | Done | report |
+| T21 | S5 | **Triage:** JARVIS + Mr. Das review the evaluation; accepted gaps become new tasks/slices, the rest recorded as accepted or deferred. | Done | triaged |
+| T24 | S5.5 | **Exit code 1** on uncaught CLI/parse errors: catch at the `Main`/`Run` boundary → write the error to stderr and exit **1** (mirrors Java's JVM exit 1); keep the explicit exit **2** for unknown format, 0 for help/success. Prefer a testable `int Run(args)` seam. + test. | Pending | - |
+| T25 | S5.5 | **Text-score rounding**: round the score with `MidpointRounding.AwayFromZero` before `F2` so `0.125`→`0.13`, matching Java `%.2f` HALF_UP. + test. | Pending | - |
+| T26 | S5.5 | **Qualified-type structure**: stop dropping `QualifiedNameSyntax`/`AliasQualifiedNameSyntax` wholesale — drop only the name/identifier leaves so nested `GenericNameSyntax` type-args survive (`A.B.List<int>` fingerprints its `<int>` shape like bare `List<int>`). + test (qualified vs unqualified parity). | Pending | - |
+| T27 | S5.5 | **Add candidate roots**: `OperatorDeclarationSyntax`, `ConversionOperatorDeclarationSyntax`, `DestructorDeclarationSyntax`, `AccessorDeclarationSyntax`. + tests. Update `decisions.md` root table. | Pending | - |
+| T28 | S5.5 | **Tighten enum parity test #3** to Java's `threshold 0.80` (keep `min-lines 1`/`min-nodes 2`); assert the enum/`EnumMember` roots match exactly (1.0). | Pending | - |
 | T22 | S6 | Build/publish `dry4csharp` (Release) and run it against `../crap4csharp`, `../mutate4csharp`, and `../dry4csharp` (self); capture text (and EDN) output per codebase. | Pending | - |
 | T23 | S6 | Triage: summarize duplicate candidates per codebase; log any parse/robustness failures (e.g. the fail-fast path throwing on real syntax) as findings/bugs fed back into the loop; record the results. | Pending | - |
 
@@ -180,3 +186,11 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
   would be strictly more faithful; **optional** Dave tweak. (c) #3 relies on an `EnumMember` normalizing
   to exactly 2 nodes — noted so a future normalizer change can't silently drop members. (d) the S2
   end-to-end fingerprint-string nit is now **closed** by `ProducesExactFingerprint…`.
+- **S5 independent eval (gpt-5.6-sol) — triage (T21, Mr. Das):** verdict "with gaps" on an otherwise-green
+  build (42 tests, CLI/exit-2/output correct). **Accepted → S5.5 hardening:** (1) error exit code 1;
+  (2) HALF_UP text rounding; (3) qualified-type generic-shape preservation; (4) operator/conversion/
+  destructor/accessor roots; (5) enum test #3 → 0.80. **Left as-is (prior rulings / documented):**
+  `ref`≡`int` / `set`≡`init` / `record class`≡`record struct` collapse (Option-A DRY behaviour, Mr. Das);
+  EDN scientific-notation & `NormalizedNode` reference-equality (R5 / algorithm-irrelevant); `obj/bin`
+  scan (D2); analyzer-stack weight (inherited env); exe named `Microsoft.Dry4CSharp` vs `dry4csharp`
+  usage (cosmetic).
