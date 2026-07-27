@@ -1,85 +1,73 @@
-# crap4csharp
+# dry4csharp
 
 ## Attribution
 
-`crap4csharp` continues the lineage of Robert C. ("Uncle Bob") Martin's original **crap4clj**, and is
-a C# port of its Java sibling **crap4java**.
+`dry4csharp` continues the lineage of Robert C. ("Uncle Bob") Martin's original **dry4clj**, and is
+a C# port of its Java sibling **dry4java**.
 
 ---
 
-`crap4csharp` is a standalone CRAP metric tool for C# projects, modeled after `crap4java`.
+## Overview
 
-It combines method cyclomatic complexity with Coverlet (Cobertura) method coverage and reports CRAP
-scores. On each run it deletes stale coverage artifacts, runs coverage, then analyzes the selected
+`dry4csharp` finds candidate duplicate C# code across files and directories. It reports fuzzy
+structural matches by filename and line range so another mechanism can evaluate and reduce
+duplication.
+
+`dry4csharp` parses C# source with Roslyn, selects C# declarations as comparison candidates,
+normalizes each candidate's syntax tree, and compares sets of structural fingerprints with Jaccard
+similarity:
+
+```text
+score = shared fingerprints / all fingerprints seen in either candidate
+```
+
+Names and literal values normalize away, while C# syntax shape remains. Type declarations (such as
+classes, structs, interfaces, records, enums), members (methods, constructors, fields, initializers,
+enum members), lambdas, expressions, statements, modifiers, and operators all contribute structural
+nodes.
+
+## Usage
+
+```bash
+dotnet build -c Release
+dotnet run --project src/Dry4CSharp -c Release -- [options] [file-or-directory ...]
+```
+
+Options:
+
+```text
+--threshold N   Minimum structural similarity score, default 0.82
+--min-lines N   Minimum source lines in a candidate declaration, default 4
+--min-nodes N   Minimum normalized syntax nodes, default 20
+--format F      text or edn, default text
+--edn           Same as --format edn
+--text          Same as --format text
+```
+
+When no paths are provided, dry4csharp scans `src`. Directory arguments recursively include `.cs`
 files.
 
-## Formula
+Default text output:
 
-`CRAP = CC^2 * (1 - coverage)^3 + CC`
+```text
+DUPLICATE score=0.89
+  src/App/Invoice.cs:12-25
+  src/App/Receipt.cs:30-44
+```
 
-- `CC` is cyclomatic complexity.
-- `coverage` is method coverage fraction from Cobertura line counters (the .NET analog of JaCoCo
-  `INSTRUCTION` counters).
+EDN output:
 
-## Coverage Pipeline
+```clojure
+{:candidates
+ [{:score 0.8909090909090909
+   :left {:file "src/App/Invoice.cs", :start-line 12, :end-line 25}
+   :right {:file "src/App/Receipt.cs", :start-line 30, :end-line 44}
+   :left-nodes 88
+   :right-nodes 91}]}
+```
 
-For each invocation, per module (nearest `.sln`, else `.csproj`, else the project root):
-
-1. Delete stale coverage artifacts:
-   - `coverage/`
-2. Run `dotnet test --collect:"XPlat Code Coverage" --results-directory coverage`
-3. Read the produced `coverage.cobertura.xml`
-4. Analyze the selected C# files
-
-## Build and Test
+## Development
 
 ```bash
 dotnet test
 ```
-
-## Run
-
-Build:
-
-```bash
-dotnet build -c Release
-```
-
-From the project root you want to analyze:
-
-```bash
-dotnet run --project src/Crap4CSharp -c Release
-```
-
-## CLI
-
-```text
---help                Print usage to stdout
-(no args)             Analyze all C# files under src/
---changed             Analyze changed C# files under src/
-<file ...>            Analyze only these files
-<directory ...>       Analyze all C# files under each directory's src/ subtree
-```
-
-Examples:
-
-```bash
-dotnet run --project src/Crap4CSharp -c Release -- --help
-dotnet run --project src/Crap4CSharp -c Release
-dotnet run --project src/Crap4CSharp -c Release -- --changed
-dotnet run --project src/Crap4CSharp -c Release -- src/Sample.cs
-dotnet run --project src/Crap4CSharp -c Release -- project-a project-b
-```
-
-## Exit codes
-
-- `0` success, threshold respected
-- `1` invalid CLI usage, or a fatal error (e.g. no tests ran / no coverage produced — see Notes)
-- `2` CRAP threshold exceeded (`> 8.0`)
-
-## Notes
-
-- **Fail fast:** if a module runs no tests or produces no coverage, `crap4csharp` exits non-zero
-  rather than continuing — a deliberate, stricter departure from `crap4java`. A method simply absent
-  from an otherwise-populated report is still reported as `N/A`.
-- Report output is sorted by CRAP descending, with `N/A` at the bottom.

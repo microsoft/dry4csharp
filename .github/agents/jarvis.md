@@ -1,6 +1,6 @@
 ---
 name: JARVIS
-description: Orchestrates the agentic loop (hub-and-spoke model) for crap4csharp.
+description: Orchestrates the agentic loop (hub-and-spoke model) for dry4csharp.
 model: Claude Opus 4.8 (copilot)
 ---
 
