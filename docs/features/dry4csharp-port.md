@@ -72,10 +72,10 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
 | T8 | S2 | `CSharpNormalizer`: `tag` (type name minus `Syntax`), drop-set (`IdentifierName`/`QualifiedName`/`AliasQualifiedName`/`LiteralExpression`; keep `GenericName`/interpolated), markers (attributes/modifiers/operators/predefined-type/switch/parenthesized-lambda) + unit tests. | Done | 07026c6 |
 | T9 | S2 | `Options` (record; ctor arity matching Java; `Parse` with `InvariantCulture`; `Defaults`) + unit tests. | Done | 07026c6 |
 | T10 | S2 | `CSharpDuplicateFinder`: `.cs` enumeration (recurse, Ordinal global sort, silent-ignore), fail-fast on `Error` diagnostics, pre-order `collectEntries`, `isCandidateRoot` (core analogs **+ all C#-only roots**: struct, record struct, both lambdas, anonymous method, property, delegate, local function, indexer, event), `entry` (line span), `similarity`, stable `OrderBy` sort + unit tests. | Done | 07026c6 |
-| T11 | S3 | `Dry4CSharp.Main`: parse → `--help`/`USAGE` → finder → format `switch` (`text`/`edn`/unknown→stderr+`Exit(2)`). | Pending | - |
-| T12 | S3 | `PrintText` (explicit `"\n"`, empty message). | Pending | - |
-| T13 | S3 | `FormatCandidate` (`F2` InvariantCulture, `"\n"`). | Pending | - |
-| T14 | S3 | `ToEdn` (empty + structured; `\`/`"` escape order; raw `double` InvariantCulture) + unit tests. | Pending | - |
+| T11 | S3 | `Dry4CSharp.Main`: parse → `--help`/`USAGE` → finder → format `switch` (`text`/`edn`/unknown→stderr+`Exit(2)`). | Done | 7d05ab9 |
+| T12 | S3 | `PrintText` (explicit `"\n"`, empty message). | Done | 7d05ab9 |
+| T13 | S3 | `FormatCandidate` (`F2` InvariantCulture, `"\n"`). | Done | 7d05ab9 |
+| T14 | S3 | `ToEdn` (empty + structured; `\`/`"` escape order; raw `double` InvariantCulture) + unit tests. | Done | 7d05ab9 |
 | T15 | S4 | Port JUnit `parsesCommandLineOptionsAndPaths`, `defaultsToSrcWhenNoPathsAreProvided`. | Pending | - |
 | T16 | S4 | Port `formatsTextOutputWithLineRanges`, `printsClearMessageWhenNoTextCandidatesExist`, `printsEdn` (use `.cs` paths). | Pending | - |
 | T17 | S4 | Port `reportsStructuralDuplicateCandidatesWithFileAndLineRanges`, `matchesRecordsWithDifferentNamesAndLiteralValues`, `filtersCandidatesShorterThanTheMinimumLineCount` with C# sample sources (assert the C#-sample line ranges — see A2). | Pending | - |
