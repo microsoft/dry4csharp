@@ -1,6 +1,6 @@
 # Feature: dry4csharp — faithful C# port of dry4java
 **Branch:** vibe/dry4csharp-port
-**Status:** In Progress
+**Status:** Complete
 
 ## Requirements
 
@@ -89,8 +89,8 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
 | T26 | S5.5 | **Qualified-type structure**: stop dropping `QualifiedNameSyntax`/`AliasQualifiedNameSyntax` wholesale — drop only the name/identifier leaves so nested `GenericNameSyntax` type-args survive (`A.B.List<int>` fingerprints its `<int>` shape like bare `List<int>`). + test (qualified vs unqualified parity). | Done | 91bdd7b |
 | T27 | S5.5 | **Add candidate roots**: `OperatorDeclarationSyntax`, `ConversionOperatorDeclarationSyntax`, `DestructorDeclarationSyntax`, `AccessorDeclarationSyntax`. + tests. Update `decisions.md` root table. | Done | 91bdd7b |
 | T28 | S5.5 | **Tighten enum parity test #3** to Java's `threshold 0.80` (keep `min-lines 1`/`min-nodes 2`); assert the enum/`EnumMember` roots match exactly (1.0). | Done | 91bdd7b |
-| T22 | S6 | Build/publish `dry4csharp` (Release) and run it against `../crap4csharp`, `../mutate4csharp`, and `../dry4csharp` (self); capture text (and EDN) output per codebase. | Pending | - |
-| T23 | S6 | Triage: summarize duplicate candidates per codebase; log any parse/robustness failures (e.g. the fail-fast path throwing on real syntax) as findings/bugs fed back into the loop; record the results. | Pending | - |
+| T22 | S6 | Build/publish `dry4csharp` (Release) and run it against `../crap4csharp`, `../mutate4csharp`, and `../dry4csharp` (self); capture text (and EDN) output per codebase. | Done | dogfood |
+| T23 | S6 | Triage: summarize duplicate candidates per codebase; log any parse/robustness failures (e.g. the fail-fast path throwing on real syntax) as findings/bugs fed back into the loop; record the results. | Done | triaged |
 
 ## Risks (Rx)
 
@@ -194,3 +194,11 @@ contract. (Sub-decision resolved by Mr. Das — **all** C#-only candidate roots 
   EDN scientific-notation & `NormalizedNode` reference-equality (R5 / algorithm-irrelevant); `obj/bin`
   scan (D2); analyzer-stack weight (inherited env); exe named `Microsoft.Dry4CSharp` vs `dry4csharp`
   usage (cosmetic).
+- **S6 dogfood (real-world validation) — result:** ran the built tool against `crap4csharp`,
+  `mutate4csharp`, `dry4csharp` (self). **Deterministic** (identical counts across repeats), **robust**
+  (`exit 0` on every tree incl. generated `obj` code — fail-fast never tripped), **fast**. Found a genuine
+  production dup in `crap4csharp` `ReportFormatter.cs` (58-66 ≡ 68-76), repetitive blocks in
+  `mutate4csharp` `AstMutationScanner`, and confirmed `dry4csharp`'s own `src/` is dup-free. `obj/bin`
+  generated files scanned but never surfaced (screened by min-lines/min-nodes). **No bugs/regressions.**
+  Refinements & deferred items recorded in `docs/features/dry4csharp-improvements.md` (next feature).
+  **Feature `dry4csharp-port` is COMPLETE.**
