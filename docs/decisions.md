@@ -91,8 +91,8 @@ additional output formats.
 | Sort stability | Stable `OrderBy` chain (Java `List.sort` is stable; `List.Sort` is not). |
 | Class decomposition | `Dry4CSharp` (entry + output), `Options`, `CSharpDuplicateFinder`, `CSharpNormalizer`, `NormalizedNode`, `Candidate`, `Location` — 1:1 with `dry4java`. |
 | Visibility | **No `internal`** (guardrail). Java package-private members that tests touch (`FormatCandidate`/`PrintText`/`ToEdn`) become **`public static`**; otherwise keep types `public` or `private` nested (`Entry` stays a `private` nested record). |
-| Exit codes | `0` normal & `--help`; **`2`** unknown `--format`; non-zero on uncaught CLI/parse exceptions (fail-fast, mirrors Java). |
-| Entry point | Explicit `public static void Main(string[] args)` on a `public static` class (not top-level statements) — needed for direct test access and Java parity. |
+| Exit codes | `0` normal & `--help`; **`2`** unknown `--format`; **`1`** on uncaught CLI/parse exceptions (`int Main` catches → stderr + exit 1, mirroring Java's JVM exit 1). |
+| Entry point | Explicit `public static int Main(string[] args)` + a testable `public static int Run(string[] args)` seam, on a `public static` class (not top-level statements) — for direct test access, deterministic exit codes, and Java parity. `void`→`int Main` ratified by Mr. Das (S5.5). |
 
 ## Fidelity mapping (Java → Roslyn)
 
@@ -121,6 +121,9 @@ additional output formats.
 | **C#-only:** `DelegateDeclarationSyntax` | type decl, no body | **IN (Mr. Das)** — included for completeness (little body structure, so rarely clears `min-nodes`). |
 | **C#-only:** `LocalFunctionStatementSyntax` | method-like, nested in a body | **IN (Mr. Das)** — no Java analog; included per Mr. Das. |
 | **C#-only:** `IndexerDeclarationSyntax`, `EventDeclarationSyntax`, `EventFieldDeclarationSyntax` | members | **IN (Mr. Das)** — included per Mr. Das (low frequency). |
+| **C#-only (S5.5):** `OperatorDeclarationSyntax`, `ConversionOperatorDeclarationSyntax` | user-defined & conversion operators (method-like `BaseMethodDeclarationSyntax`) | **IN (Mr. Das, S5.5)** — added from the independent-eval triage. |
+| **C#-only (S5.5):** `DestructorDeclarationSyntax` | finalizer (method-like) | **IN (Mr. Das, S5.5)**. |
+| **C#-only (S5.5):** `AccessorDeclarationSyntax` | property/event accessor (`get`/`set`/`init`/…) | **IN (Mr. Das, S5.5)** — individual accessors are independent candidates; not a `MemberDeclarationSyntax`, so no modifier/annotation markers (consistent with the accessor-modifier exclusion). Overlap rule prevents self-pairing with the enclosing property. |
 | Top-level statements / `GlobalStatementSyntax` | not declarations | **OUT.** |
 
 ### Normalizer — dropped children (`keepsStructuralChild`)
@@ -131,7 +134,7 @@ Java drops children whose simple name is `SimpleName`, `*LiteralExpr`, `Name`, `
 | Java dropped | Roslyn | Handling |
 |---|---|---|
 | `SimpleName`, `NameExpr` | `IdentifierNameSyntax` | **Drop** (it is a child node in expression/type position). |
-| `Name` (qualified) | `QualifiedNameSyntax`, `AliasQualifiedNameSyntax` | **Drop.** |
+| `Name` (qualified) | `QualifiedNameSyntax`, `AliasQualifiedNameSyntax` | **Transparent recurse (S5.5)** — drop the identifier segments but hoist kept descendants, so a nested `GenericNameSyntax`'s type-args survive (`A.B.List<int>` fingerprints its `<int>` shape like bare `List<int>`; a plain non-generic qualified name still normalizes every identifier away). Faithful to the C# normalizer's own scheme and fixes a real internal inconsistency (the old wholesale `Drop` discarded `<int>` for a qualified generic while keeping it for the bare form). Direction-aligned with Java but **not** literally identical — JavaParser keeps qualifier segments as `ClassOrInterfaceType` nodes (extra qualifier-scope fingerprints) whereas Roslyn models them as dropped `IdentifierNameSyntax`; that qualifier divergence is an instance of departure #1 (structural-not-literal). |
 | `*LiteralExpr` | `LiteralExpressionSyntax` (numeric/string/char/bool/null/raw) | **Drop.** |
 | `Comment` | `SyntaxTrivia` | Already excluded (not a child node) — no rule needed. |
 | — | `GenericNameSyntax` (`List<int>`) | **Keep** — its `TypeArgumentList` carries structure to preserve (analog of Java `ClassOrInterfaceType` type-args). *(Decision: keep the wrapper so `<...>` shape survives.)* |
@@ -188,9 +191,10 @@ Ordinal is chosen for correctness/determinism.
 `Options.Parse` mirrors the Java `switch`: `--threshold`/`--min-lines`/`--min-nodes` (value parsed with
 `InvariantCulture`), `--format F`, `--edn`, `--text`, `--help`/`-h`; unknown tokens → paths; empty →
 `["src"]`; missing value → throw (fail-fast). Format is validated at **output** time (as in Java):
-`text`/`edn` dispatch, otherwise `Console.Error.WriteLine("Unknown format: " + format)` +
-`Environment.Exit(2)`. `--help` prints `USAGE` and returns (exit `0`). Malformed numbers throw
-(`FormatException`) and propagate (fail-fast, non-zero exit).
+`text`/`edn` dispatch, otherwise `Console.Error.Write("Unknown format: " + format + "\n")` +
+`return 2` (from the testable `int Run`). `--help` prints `USAGE` and returns `0`. Malformed numbers
+throw (`FormatException`) and propagate to `int Main`, which catches → writes the error to stderr and
+**exits 1** (mirrors Java's JVM exit 1). `void`→`int Main` ratified by Mr. Das (S5.5).
 
 ### Output parity
 - **Text:** empty → `"No duplicate candidates found."`; else per candidate
