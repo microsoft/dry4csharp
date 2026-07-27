@@ -75,6 +75,33 @@ public class CSharpNormalizerTests
         fingerprints.Should().NotContain(fingerprint => fingerprint.Contains("LiteralExpression", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void PreservesGenericTypeArgsInsideQualifiedNames()
+    {
+        // A qualified generic type (System.Collections.Generic.List<int>) must keep the same generic
+        // structure as its bare form (List<int>): the normalizer drops the dotted name segments but
+        // recurses through the qualified-name wrapper so the nested GenericName + TypeArgumentList
+        // survive. Faithful to this normalizer's own scheme and fixes a real internal inconsistency
+        // (the old drop-set discarded <int> for a qualified generic while keeping it for the bare
+        // form). Direction-aligned with dry4java (type-arg shape preserved and shared across
+        // qualified/bare) but NOT literally identical — Java keeps qualifier-scope nodes that Roslyn
+        // drops (accepted departure #1, structural-not-literal).
+        MethodDeclarationSyntax qualified = First<MethodDeclarationSyntax>(
+            "class C { void F() { System.Collections.Generic.List<int> xs = new(); } }");
+        MethodDeclarationSyntax bare = First<MethodDeclarationSyntax>(
+            "using System.Collections.Generic; class C { void F() { List<int> xs = new(); } }");
+
+        ISet<string> qualifiedFingerprints = _normalizer.Normalize(qualified).Fingerprints();
+
+        // The GenericName subtree fingerprint is identical whether the type name was qualified or not.
+        string genericSubtree = _normalizer.Normalize(bare).Fingerprints()
+            .Single(fingerprint => fingerprint.StartsWith("(GenericName", StringComparison.Ordinal));
+        qualifiedFingerprints.Should().Contain(genericSubtree);
+
+        // The qualifier segments (System/Collections/Generic) normalize away — no identifier leaks in.
+        qualifiedFingerprints.Should().NotContain(fingerprint => fingerprint.Contains("IdentifierName", StringComparison.Ordinal));
+    }
+
     private static T First<T>(string code)
         where T : SyntaxNode =>
         CSharpSyntaxTree.ParseText(code, new CSharpParseOptions(LanguageVersion.Latest))

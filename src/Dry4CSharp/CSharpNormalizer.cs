@@ -25,15 +25,37 @@ public sealed class CSharpNormalizer
             children.Add(new NormalizedNode(marker, []));
         }
 
+        AppendStructuralChildren(node, children);
+
+        return new NormalizedNode(Tag(node), children);
+    }
+
+    private void AppendStructuralChildren(SyntaxNode node, List<NormalizedNode> children)
+    {
         foreach (SyntaxNode child in node.ChildNodes())
         {
-            if (KeepsStructuralChild(child))
+            if (child is QualifiedNameSyntax or AliasQualifiedNameSyntax)
+            {
+                // A qualified name (a.b.List<int>, global::a.b.C) is a transparent wrapper: drop the
+                // wrapper and its dotted name segments (pure IdentifierNameSyntax leaves) but recurse
+                // in place so a nested GenericNameSyntax keeps its type-argument structure. This is
+                // faithful to THIS normalizer's own scheme (names normalize away; generic type-arg
+                // shape survives) and fixes a real internal inconsistency: the old drop-set discarded
+                // <int> for a qualified generic while keeping it for the bare form. So qualified
+                // `a.b.List<int>` and bare `List<int>` now share the same GenericName subtree, and a
+                // plain (non-generic) qualified name contributes nothing (all its identifiers normalize
+                // away). This is direction-aligned with dry4java (type-arg structure preserved and
+                // shared across qualified/bare) but NOT literally identical: JavaParser models the
+                // qualifier segments as kept ClassOrInterfaceType nodes, so a qualified generic in Java
+                // carries extra qualifier-scope fingerprints — an instance of accepted departure #1
+                // (structural-not-literal) in docs/decisions.md.
+                AppendStructuralChildren(child, children);
+            }
+            else if (KeepsStructuralChild(child))
             {
                 children.Add(Normalize(child));
             }
         }
-
-        return new NormalizedNode(Tag(node), children);
     }
 
     private static string Tag(SyntaxNode node)
@@ -47,8 +69,6 @@ public sealed class CSharpNormalizer
 
     private static bool KeepsStructuralChild(SyntaxNode child) =>
         child is not (IdentifierNameSyntax
-            or QualifiedNameSyntax
-            or AliasQualifiedNameSyntax
             or LiteralExpressionSyntax);
 
     private static List<string> Markers(SyntaxNode node)

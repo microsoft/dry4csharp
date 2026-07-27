@@ -226,6 +226,99 @@ public sealed class CSharpDuplicateFinderTests : IDisposable
         candidates[0].Score.Should().Be(candidates.Max(candidate => candidate.Score));
     }
 
+    [Fact]
+    public void CollectsOperatorDeclarationsAsCandidates()
+    {
+        string leftSource = """
+            struct Money
+            {
+                int Amount;
+                public static Money operator +(Money left, Money right)
+                {
+                    int total = left.Amount + right.Amount;
+                    int adjusted = total + 1;
+                    return new Money();
+                }
+            }
+            """;
+        string rightSource = """
+            struct Cash
+            {
+                int Value;
+                public static Cash operator +(Cash first, Cash second)
+                {
+                    int sum = first.Value + second.Value;
+                    int tweaked = sum + 9;
+                    return new Cash();
+                }
+            }
+            """;
+        string dir = NewDir();
+        Write(dir, "Money.cs", leftSource);
+        Write(dir, "Cash.cs", rightSource);
+
+        IReadOnlyList<Candidate> candidates = new CSharpDuplicateFinder()
+            .FindDuplicates(new Options([dir], 0.80, 3, 8, "text", false));
+
+        // The two `operator +` declarations (OperatorDeclaration roots, lines 4-9 in each file) are
+        // structurally identical after normalization and match across files.
+        candidates.Should().Contain(candidate =>
+            candidate.Left.StartLine == 4
+            && candidate.Left.EndLine == 9
+            && candidate.Right.StartLine == 4
+            && candidate.Right.EndLine == 9);
+    }
+
+    [Fact]
+    public void CollectsAccessorDeclarationsAsCandidates()
+    {
+        string leftSource = """
+            class Holder
+            {
+                int Field;
+                int Value
+                {
+                    get
+                    {
+                        int a = Field + 1;
+                        int b = a + 2;
+                        return b + 3;
+                    }
+                }
+            }
+            """;
+        string rightSource = """
+            class Store
+            {
+                int Slot;
+                int Amount
+                {
+                    get
+                    {
+                        int x = Slot + 9;
+                        int y = x + 8;
+                        return y + 7;
+                    }
+                }
+            }
+            """;
+        string dir = NewDir();
+        Write(dir, "Holder.cs", leftSource);
+        Write(dir, "Store.cs", rightSource);
+
+        IReadOnlyList<Candidate> candidates = new CSharpDuplicateFinder()
+            .FindDuplicates(new Options([dir], 0.80, 3, 8, "text", false));
+
+        // The individual `get` accessors (AccessorDeclaration roots, lines 6-11 in each file) are
+        // collected as independent candidates and match across files, distinct from the enclosing
+        // property (lines 4-12) — proving accessors become their own candidate roots.
+        candidates.Should().Contain(candidate =>
+            candidate.Left.StartLine == 6
+            && candidate.Left.EndLine == 11
+            && candidate.Right.StartLine == 6
+            && candidate.Right.EndLine == 11);
+    }
+
     public void Dispose()
     {
         foreach (string dir in _dirs)

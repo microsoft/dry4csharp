@@ -124,8 +124,11 @@ public sealed class CSharpDuplicateFinderParityTests : IDisposable
     // R2 option (a): the Java sample (enum constants with ctor args + private field + constructor) has
     // no param-for-param C# port because C# enums cannot declare constructors, fields, or methods. This
     // verifies the same *intent* — enum and constant roots match structurally across files — with a real
-    // C# enum (several members, differing names and literal values) and relaxed thresholds so both the
-    // EnumDeclaration root (lines 1-7) and the single-line EnumMember (constant) roots qualify.
+    // C# enum (several members, differing names and literal values). Thresholds stay relaxed on lines
+    // (min-lines 1) and nodes (min-nodes 2) so the single-line EnumMember (constant) roots qualify, but
+    // the score bar is a strict 0.80: both the EnumDeclaration roots (lines 1-7) and the EnumMember roots
+    // normalize their names/literals away and match *exactly* (score 1.0), so nothing hinges on a loose
+    // threshold.
     [Fact]
     public void MatchesEnumsAndConstantsStructurally()
     {
@@ -152,7 +155,7 @@ public sealed class CSharpDuplicateFinderParityTests : IDisposable
         Write(dir, "Two.cs", twoSource);
 
         IReadOnlyList<Candidate> candidates = new CSharpDuplicateFinder()
-            .FindDuplicates(new Options([dir], 0.50, 1, 2, "text", false));
+            .FindDuplicates(new Options([dir], 0.80, 1, 2, "text", false));
 
         // Java parity: One and Two produce a cross-file match.
         candidates.Should().Contain(candidate =>

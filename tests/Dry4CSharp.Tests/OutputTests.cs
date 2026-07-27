@@ -24,6 +24,23 @@ public sealed class OutputTests
     }
 
     [Fact]
+    public void FormatCandidateRoundsScoreHalfUpLikeJava()
+    {
+        // 0.125 is exactly representable, so the third decimal is a true midpoint. Java's
+        // String.format("%.2f", 0.125) rounds HALF_UP to "0.13"; .NET's default banker's rounding
+        // would yield "0.12". FormatCandidate must match Java (0.13).
+        Candidate candidate = new(
+            0.125,
+            new Location("a.cs", 1, 2),
+            new Location("b.cs", 3, 4),
+            8,
+            9);
+
+        Dry4CSharp.FormatCandidate(candidate)
+            .Should().Be("DUPLICATE score=0.13\n  a.cs:1-2\n  b.cs:3-4");
+    }
+
+    [Fact]
     public void PrintTextWritesClearMessageWhenNoCandidatesExist()
     {
         CaptureOutput(() => Dry4CSharp.PrintText([]))

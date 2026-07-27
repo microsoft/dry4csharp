@@ -83,7 +83,11 @@ public sealed class CSharpDuplicateFinder
             or LocalFunctionStatementSyntax
             or IndexerDeclarationSyntax
             or EventDeclarationSyntax
-            or EventFieldDeclarationSyntax;
+            or EventFieldDeclarationSyntax
+            or OperatorDeclarationSyntax
+            or ConversionOperatorDeclarationSyntax
+            or DestructorDeclarationSyntax
+            or AccessorDeclarationSyntax;
 
     private static double Similarity(Entry left, Entry right)
     {

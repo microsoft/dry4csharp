@@ -28,13 +28,37 @@ public static class Dry4CSharp
         + "  --edn           Same as --format edn\n"
         + "  --text          Same as --format text";
 
-    public static void Main(string[] args)
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Legitimate CLI top-level boundary: faithful to dry4java, whose main lets any exception reach the JVM's default handler, which prints it and exits 1. Catching Exception here reproduces that contract (print the exception, return exit code 1) instead of letting the CLR abort the process with a negative code.")]
+    public static int Main(string[] args)
+    {
+        try
+        {
+            return Run(args);
+        }
+        catch (Exception e)
+        {
+            Console.Error.Write(e + "\n");
+            return 1;
+        }
+    }
+
+    /// <summary>
+    /// Runs the CLI and returns its exit code: <c>0</c> for <c>--help</c> and successful
+    /// text/EDN output, <c>2</c> for an unknown <c>--format</c>. Any parse/analysis failure is
+    /// left to propagate so <see cref="Main"/> can translate it to exit <c>1</c> — mirroring how
+    /// <c>dry4java</c>'s <c>main</c> lets exceptions reach the JVM (exit 1) and uses
+    /// <c>System.exit(2)</c> for an unknown format.
+    /// </summary>
+    public static int Run(string[] args)
     {
         Options options = Options.Parse(args);
         if (options.Help)
         {
             Console.Out.Write(Usage + "\n");
-            return;
+            return 0;
         }
 
         IReadOnlyList<Candidate> candidates = new CSharpDuplicateFinder().FindDuplicates(options);
@@ -42,14 +66,13 @@ public static class Dry4CSharp
         {
             case "edn":
                 Console.Out.Write(ToEdn(candidates) + "\n");
-                break;
+                return 0;
             case "text":
                 PrintText(candidates);
-                break;
+                return 0;
             default:
                 Console.Error.Write("Unknown format: " + options.Format + "\n");
-                Environment.Exit(2);
-                break;
+                return 2;
         }
     }
 
@@ -76,7 +99,13 @@ public static class Dry4CSharp
     public static string FormatCandidate(Candidate candidate)
     {
         ArgumentNullException.ThrowIfNull(candidate);
-        return "DUPLICATE score=" + candidate.Score.ToString("F2", CultureInfo.InvariantCulture) + "\n"
+
+        // Java's String.format("%.2f", …) rounds HALF_UP; .NET's "F2"/Math.Round default to banker's
+        // (to-even) rounding, so 0.125 would render "0.12" instead of Java's "0.13". Round HALF_UP
+        // (away from zero) first to keep the score text byte-for-byte faithful to dry4java.
+        string score = Math.Round(candidate.Score, 2, MidpointRounding.AwayFromZero)
+            .ToString("F2", CultureInfo.InvariantCulture);
+        return "DUPLICATE score=" + score + "\n"
             + "  " + LineRange(candidate.Left) + "\n"
             + "  " + LineRange(candidate.Right);
     }
