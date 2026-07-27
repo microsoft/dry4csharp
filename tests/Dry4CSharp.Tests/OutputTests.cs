@@ -4,6 +4,9 @@ using System.Globalization;
 
 // Console.SetOut mutates process-global state; keeping every capturing test in a single class makes
 // xUnit run them sequentially (tests within one class never run in parallel), avoiding interference.
+// The shared "ConsoleCapture" collection extends that guarantee across class boundaries so these tests
+// never run in parallel with the console-capturing parity test (CSharpDuplicateFinderParityTests).
+[Collection("ConsoleCapture")]
 public sealed class OutputTests
 {
     [Fact]

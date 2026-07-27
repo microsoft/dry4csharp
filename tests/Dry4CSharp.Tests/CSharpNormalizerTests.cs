@@ -50,6 +50,18 @@ public class CSharpNormalizerTests
     }
 
     [Fact]
+    public void ProducesExactFingerprintPinningTagAndMarkerComposition()
+    {
+        FieldDeclarationSyntax field = First<FieldDeclarationSyntax>("class C { public int F; }");
+
+        // Pins the whole tag + marker + child composition end-to-end: the FieldDeclaration carries a
+        // sorted modifier marker, wraps a VariableDeclaration whose PredefinedType emits a primitive
+        // marker, and the identifier/declarator names are normalized away.
+        _normalizer.Normalize(field).ToFingerprint()
+            .Should().Be("(FieldDeclaration modifier:public (VariableDeclaration (PredefinedType primitive:int) VariableDeclarator))");
+    }
+
+    [Fact]
     public void KeepsGenericAndInterpolatedShapeButDropsNamesAndLiterals()
     {
         MethodDeclarationSyntax method = First<MethodDeclarationSyntax>(
